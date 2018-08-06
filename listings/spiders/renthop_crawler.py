@@ -1,22 +1,30 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from listings.items import ListingsItem
+from scrapy.linkextractors import LinkExtractor
+from scrapy.spiders import CrawlSpider, Rule
 import re
 
-class RealestateSpider(scrapy.Spider):
-    name = 'realestate'
+from listings.items import ListingsItem
+
+class RenthopCrawlerSpider(CrawlSpider):
+    name = 'renthop_crawler'
     allowed_domains = ['renthop.com']
     start_urls = ['https://www.renthop.com/search/nyc?min_price=1500&max_price=4500&q=&neighborhoods_str=1%2C10%2C14%2C11%2C18&sort=hopscore&search=0&page=1']
 
-    def parse(self, response):
+    rules = (
+        Rule(LinkExtractor(allow=(), 
+             restrict_xpaths=('//div[@class="font-size-10"][2]//a[@class="font-blue"][2]'), unique=True), callback='parse_item', follow=True ),
+    )
+
+    def parse_item(self, response):
         for listing_url in response.xpath('//a[@class="font-size-11 listing-title-link b"]/@href').extract():
             yield response.follow(listing_url, callback=self.parse_listing)
-        next_page = response.xpath('//a[contains(text(), "Next")]/@href').extract()[0]
-        if next_page is not 'https://www.renthop.com/search/nyc?min_price=1500&max_price=4500&q=&neighborhoods_str=1%2C10%2C14%2C11%2C18&sort=hopscore&page=2435&search=0':
-            yield response.follow(next_page, callback=self.parse)
+#        next_page = response.xpath('//a[contains(text(), "Next")]/@href').extract()[0]
+#        if next_page is not 'https://www.renthop.com/search/nyc?min_price=1500&max_price=4500&q=&neighborhoods_str=1%2C10%2C14%2C11%2C18&sort=hopscore&page=2435&search=0':
+#            yield response.follow(next_page, callback=self.parse)
         
     def parse_listing(self, response):
-        for agent_url in response.xpath('//div[@class="b overflow-ellipsis"]/a/@href').extract():
+        for agent_url in  response.xpath('//div[@class="b overflow-ellipsis"]/a/@href').extract():
             yield response.follow(agent_url, callback=self.parse_page)
               
     def parse_page(self, response):
@@ -32,11 +40,3 @@ class RealestateSpider(scrapy.Spider):
             item['listings'] = re.search('\((.+?)Rentals', listings).group(1)
             item['agent_page'] = response.xpath("//meta[@property='og:url']/@content").extract()
             yield item
-        
-        
-        
-        
-        
-        
-        
-    

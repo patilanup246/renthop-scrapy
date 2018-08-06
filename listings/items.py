@@ -6,7 +6,7 @@
 # https://doc.scrapy.org/en/latest/topics/items.html
 
 import scrapy
-
+from scrapy.item import Item, Field
 
 class ListingsItem(scrapy.Item):
     name = scrapy.Field()
